@@ -290,7 +290,7 @@ function App() {
                 className="aspect-square rounded-2xl overflow-hidden border-2 border-dark dark:border-light"
               >
                 <img
-                  src="/public/profile.jpeg"
+                  src="/profile.jpeg"
                   alt="Adhitya Ramadhan"
                   className="w-full h-full object-cover"
                 />
