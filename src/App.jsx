@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Typewriter from 'typewriter-effect'
 import Particles from 'react-particles'
 import { loadFull } from 'tsparticles'
@@ -7,11 +7,36 @@ import ThemeToggle from './components/ThemeToggle'
 import { motion } from 'framer-motion'
 import { HiDownload } from 'react-icons/hi'
 import { FaGithub, FaLinkedin, FaEnvelope, FaReact } from 'react-icons/fa'
+import TrueFocus from './components/TrueFocus'
+import { FaQuoteLeft } from 'react-icons/fa'
+import { BsEmojiSmileFill, BsEmojiNeutralFill, BsEmojiFrownFill } from 'react-icons/bs'
+import { FaUserCircle } from 'react-icons/fa'
+import axios from 'axios'
+
+// Update URL untuk API calls - sesuaikan dengan IP/domain server Anda
+const API_URL = import.meta.env.VITE_API_URL;
 
 function App() {
   const [isDark, setIsDark] = useState(() => 
     document.documentElement.classList.contains('dark')
   );
+
+  const [testimonials, setTestimonials] = useState([]);
+  const [selectedEmoji, setSelectedEmoji] = useState('happy');
+  const [selectedAvatar, setSelectedAvatar] = useState('avatar1');
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const testimonialRef = useRef(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  const avatars = [
+    { id: 'avatar1', icon: '👨‍💻' },
+    { id: 'avatar2', icon: '👩‍💻' },
+    { id: 'avatar3', icon: '🧑‍💻' },
+    { id: 'avatar4', icon: '👨‍🦰' },
+    { id: 'avatar5', icon: '👩‍🦰' },
+    { id: 'avatar6', icon: '🧑‍🦰' },
+  ];
 
   useEffect(() => {
     const observer = new MutationObserver((mutations) => {
@@ -29,6 +54,26 @@ function App() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (testimonials.length > 0 && testimonialRef.current) {
+      testimonialRef.current.scrollTop = testimonialRef.current.scrollHeight;
+    }
+  }, [testimonials]);
+
+  useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/testimonials`);
+        setTestimonials(response.data);
+      } catch (err) {
+        console.error('Error fetching testimonials:', err);
+        setError('Failed to load testimonials');
+      }
+    };
+
+    fetchTestimonials();
+  }, []);
+
   const particlesInit = async (main) => {
     await loadFull(main)
   }
@@ -39,7 +84,7 @@ function App() {
     },
     particles: {
       number: {
-        value: 80,
+        value: 200,
         density: {
           enable: true,
           value_area: 1000
@@ -130,6 +175,52 @@ function App() {
     }
   }
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadedImage(reader.result);
+        setSelectedAvatar(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Check file size
+      if (uploadedImage && uploadedImage.length > 2 * 1024 * 1024) {
+        throw new Error('Image size must be less than 2MB');
+      }
+
+      const newTestimonial = {
+        name: e.target.name.value,
+        feedback: e.target.feedback.value,
+        rating: selectedEmoji,
+        timestamp: new Date().toLocaleTimeString(),
+        date: new Date().toLocaleDateString(),
+        avatar: uploadedImage || selectedAvatar,
+      };
+
+      const response = await axios.post(`${API_URL}/testimonials`, newTestimonial);
+      setTestimonials(prev => [response.data, ...prev]);
+      
+      e.target.reset();
+      setSelectedEmoji('happy');
+      setUploadedImage(null);
+      setSelectedAvatar('avatar1');
+    } catch (err) {
+      setError(err.message || 'Failed to submit testimonial');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-light dark:bg-dark transition-colors duration-300 overflow-x-hidden">
       <CursorTrail />
@@ -146,7 +237,7 @@ function App() {
         
         <div className="text-center z-10 max-w-5xl mx-auto">
           <div className="flex justify-center">
-            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 text-dark dark:text-light tracking-tight">
+            <h1 className="text-[18px] xs:text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 text-dark dark:text-light tracking-tight">
               <Typewriter
                 options={{
                   strings: [
@@ -258,7 +349,15 @@ function App() {
               viewport={{ margin: "-100px" }}
               className="text-3xl sm:text-4xl font-bold text-dark dark:text-light mb-4"
             >
-              About Me
+              <TrueFocus 
+                sentence="About Me"
+                blurAmount={3}
+                borderColor="#4B5563"
+                glowColor="rgba(75, 85, 99, 0.5)"
+                animationDuration={0.6}
+                pauseBetweenAnimations={2}
+                className="inline-block"
+              />
             </motion.h2>
             <motion.div 
               initial={{ scaleX: 0 }}
@@ -415,7 +514,15 @@ function App() {
               viewport={{ margin: "-100px" }}
               className="text-3xl sm:text-4xl font-bold text-dark dark:text-light mb-4"
             >
-              Tech Stack
+              <TrueFocus 
+                sentence="Tech Stack"
+                blurAmount={3}
+                borderColor="#4B5563"
+                glowColor="rgba(75, 85, 99, 0.5)"
+                animationDuration={0.6}
+                pauseBetweenAnimations={2}
+                className="inline-block"
+              />
             </motion.h2>
             <motion.div 
               initial={{ scaleX: 0 }}
@@ -527,7 +634,15 @@ function App() {
               viewport={{ margin: "-100px" }}
               className="text-3xl sm:text-4xl font-bold text-dark dark:text-light mb-4"
             >
-              My Projects
+              <TrueFocus 
+                sentence="My Projects"
+                blurAmount={3}
+                borderColor="#4B5563"
+                glowColor="rgba(75, 85, 99, 0.5)"
+                animationDuration={0.6}
+                pauseBetweenAnimations={2}
+                className="inline-block"
+              />
             </motion.h2>
             <motion.div 
               initial={{ scaleX: 0 }}
@@ -684,7 +799,15 @@ function App() {
               viewport={{ margin: "-100px" }}
               className="text-3xl sm:text-4xl font-bold text-dark dark:text-light mb-4"
             >
-              Certificates
+              <TrueFocus 
+                sentence="Certificates"
+                blurAmount={3}
+                borderColor="#4B5563"
+                glowColor="rgba(75, 85, 99, 0.5)"
+                animationDuration={0.6}
+                pauseBetweenAnimations={2}
+                className="inline-block"
+              />
             </motion.h2>
             <motion.div 
               initial={{ scaleX: 0 }}
@@ -716,12 +839,12 @@ function App() {
                 />
                 {/* Hover Overlay */}
                 <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300
-                  flex flex-col items-center justify-center text-white backdrop-blur-md"
+                  flex flex-col items-center justify-center text-white backdrop-blur-md p-2 xs:p-4 sm:p-6"
                 >
-                  <h3 className="text-2xl font-bold mb-2">Golden Ticket MSIB Batch 6</h3>
-                  <p className="text-lg mb-2">Educourse.id</p>
-                  <p className="text-sm text-gray-300">Platform and Web Developer Specialist Education Platform</p>
-                  <p className="text-sm text-gray-300">Jun 2024</p>
+                  <h3 className="text-lg xs:text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Golden Ticket MSIB Batch 6</h3>
+                  <p className="text-base xs:text-lg sm:text-lg mb-1 sm:mb-2">Educourse.id</p>
+                  <p className="text-xs xs:text-sm sm:text-sm text-gray-300 text-center">Platform and Web Developer Specialist Education Platform</p>
+                  <p className="text-xs xs:text-sm sm:text-sm text-gray-300">Jun 2024</p>
                 </div>
               </div>
             </motion.div>
@@ -745,12 +868,12 @@ function App() {
                 />
                 {/* Hover Overlay - Mengikuti style yang sama */}
                 <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300
-                  flex flex-col items-center justify-center text-white backdrop-blur-md"
+                  flex flex-col items-center justify-center text-white backdrop-blur-md p-2 xs:p-4 sm:p-6"
                 >
-                  <h3 className="text-2xl font-bold mb-2">Front-End Web Development</h3>
-                  <p className="text-lg mb-2">Coding Studio</p>
-                  <p className="text-sm text-gray-300">Fundamental Front-End Web Development</p>
-                  <p className="text-sm text-gray-300">Jan 2024</p>
+                  <h3 className="text-lg xs:text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Front-End Web Development</h3>
+                  <p className="text-base xs:text-lg sm:text-lg mb-1 sm:mb-2">Coding Studio</p>
+                  <p className="text-xs xs:text-sm sm:text-sm text-gray-300 text-center">Fundamental Front-End Web Development</p>
+                  <p className="text-xs xs:text-sm sm:text-sm text-gray-300">Jan 2024</p>
                 </div>
               </div>
             </motion.div>
@@ -759,7 +882,311 @@ function App() {
         </div>
       </section>
 
-      </div>
+      {/* Testimonials Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-light dark:bg-dark">
+        <div className="max-w-6xl mx-auto">
+          {/* Section Title */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            viewport={{ margin: "-100px" }}
+            className="text-center mb-16"
+          >
+            <motion.h2 
+              initial={{ y: 20 }}
+              whileInView={{ y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+              viewport={{ margin: "-100px" }}
+              className="text-3xl sm:text-4xl font-bold text-dark dark:text-light mb-4"
+            >
+              <TrueFocus 
+                sentence="Testimonials"
+                blurAmount={3}
+                borderColor="#4B5563"
+                glowColor="rgba(75, 85, 99, 0.5)"
+                animationDuration={0.6}
+                pauseBetweenAnimations={2}
+                className="inline-block"
+              />
+            </motion.h2>
+            <motion.div 
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
+              viewport={{ margin: "-100px" }}
+              className="w-20 h-1 bg-dark dark:bg-light mx-auto rounded-full"
+            />
+          </motion.div>
+
+          {/* Update grid container untuk responsivitas lebih baik */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+            {/* Testimonial Form */}
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ margin: "-50px" }}
+              className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 lg:p-8 shadow-[0_8px_30px_rgba(0,0,0,0.12)] 
+                dark:shadow-[0_8px_30px_rgba(255,255,255,0.12)] backdrop-blur-sm"
+            >
+              <h3 className="text-xl sm:text-2xl font-bold text-dark dark:text-light mb-4 sm:mb-6">Leave Your Feedback</h3>
+              {error && (
+                <div className="text-red-500 text-sm mb-4">
+                  {error}
+                </div>
+              )}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Name Input - update padding */}
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Your Name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    required
+                    className="w-full px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
+                      focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                      bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                      transition-colors duration-200 text-sm sm:text-base"
+                  />
+                </div>
+
+                {/* Emoji Selection - update untuk mobile */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Your Experience
+                  </label>
+                  <div className="flex justify-center sm:justify-start gap-2 sm:gap-4 mb-4">
+                    {['happy', 'neutral', 'sad'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setSelectedEmoji(emoji)}
+                        className={`p-2 sm:p-3 rounded-full transition-all duration-200 ${
+                          selectedEmoji === emoji 
+                            ? 'bg-blue-100 dark:bg-blue-900 scale-110' 
+                            : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {emoji === 'happy' && <BsEmojiSmileFill className={`w-5 h-5 sm:w-6 sm:h-6 ${selectedEmoji === emoji ? 'text-green-500' : 'text-gray-500 dark:text-gray-400'}`} />}
+                        {emoji === 'neutral' && <BsEmojiNeutralFill className={`w-5 h-5 sm:w-6 sm:h-6 ${selectedEmoji === emoji ? 'text-yellow-500' : 'text-gray-500 dark:text-gray-400'}`} />}
+                        {emoji === 'sad' && <BsEmojiFrownFill className={`w-5 h-5 sm:w-6 sm:h-6 ${selectedEmoji === emoji ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`} />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Avatar Selection - update grid untuk mobile */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+                    Choose Avatar or Upload Photo
+                  </label>
+                  
+                  <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                    {avatars.map((avatar) => (
+                      <button
+                        key={avatar.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAvatar(avatar.id);
+                          setUploadedImage(null);
+                        }}
+                        className={`text-xl sm:text-2xl p-2 sm:p-3 rounded-lg border-2 transition-all duration-200 ${
+                          selectedAvatar === avatar.id && !uploadedImage
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 scale-110'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
+                        }`}
+                      >
+                        {avatar.icon}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Image Upload - update padding dan ukuran */}
+                  <div className="relative group">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="avatar-upload"
+                    />
+                    <label
+                      htmlFor="avatar-upload"
+                      className={`flex items-center justify-center w-full p-2 sm:p-3 border-2 border-dashed rounded-lg cursor-pointer
+                        transition-all duration-200 ${
+                          uploadedImage
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                            : 'border-gray-300 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
+                        }`}
+                    >
+                      {uploadedImage ? (
+                        <div className="relative w-12 h-12 sm:w-16 sm:h-16">
+                          <img
+                            src={uploadedImage}
+                            alt="Uploaded avatar"
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setUploadedImage(null);
+                              setSelectedAvatar('avatar1');
+                            }}
+                            className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-500 text-white rounded-full p-1
+                              hover:bg-red-600 transition-colors duration-200 text-xs sm:text-sm"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1 sm:gap-2">
+                          <FaUserCircle className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
+                          <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                            Upload photo
+                          </span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                </div>
+
+                {/* Feedback Textarea - update padding */}
+                <div>
+                  <label htmlFor="feedback" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Your Feedback
+                  </label>
+                  <textarea
+                    id="feedback"
+                    name="feedback"
+                    required
+                    rows="4"
+                    className="w-full px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
+                      focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 
+                      bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                      transition-colors duration-200 resize-none text-sm sm:text-base"
+                  ></textarea>
+                </div>
+
+                {/* Submit Button - update padding */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`w-full px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg font-medium
+                    ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'}
+                    focus:ring-4 focus:ring-blue-500/50
+                    transition-all duration-200 transform hover:scale-[1.02]
+                    shadow-lg hover:shadow-xl text-sm sm:text-base`}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+                </button>
+              </form>
+            </motion.div>
+
+            {/* Testimonials Live Feed */}
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ margin: "-50px" }}
+              className="relative h-full"
+            >
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 lg:p-8 
+                shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(255,255,255,0.12)] 
+                backdrop-blur-sm h-[600px] flex flex-col"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-dark dark:text-light">Live Feedback</h3>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm text-green-500">Live</span>
+                  </div>
+                </div>
+
+                {testimonials.length > 0 ? (
+                  <div 
+                    ref={testimonialRef}
+                    className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar"
+                  >
+                    {testimonials.map((testimonial, index) => (
+                      <motion.div
+                        key={testimonial.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 
+                          transform hover:scale-[1.02] transition-all duration-200
+                          hover:shadow-lg dark:hover:shadow-gray-700/50"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0">
+                            {testimonial.avatar ? (
+                              testimonial.avatar.startsWith('data:image') ? (
+                                <img
+                                  src={testimonial.avatar}
+                                  alt={testimonial.name}
+                                  className="w-10 h-10 rounded-full object-cover border-2 border-blue-500"
+                                />
+                              ) : (
+                                <span className="text-2xl flex items-center justify-center w-10 h-10 
+                                  bg-blue-100 dark:bg-blue-900/30 rounded-full border-2 border-blue-500"
+                                >
+                                  {avatars.find(a => a.id === testimonial.avatar)?.icon}
+                                </span>
+                              )
+                            ) : (
+                              <FaUserCircle className="w-10 h-10 text-gray-400" />
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 className="text-sm font-semibold text-dark dark:text-light truncate">
+                                {testimonial.name}
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {testimonial.timestamp}
+                                </span>
+                                {testimonial.rating === 'happy' && <BsEmojiSmileFill className="w-4 h-4 text-green-500" />}
+                                {testimonial.rating === 'neutral' && <BsEmojiNeutralFill className="w-4 h-4 text-yellow-500" />}
+                                {testimonial.rating === 'sad' && <BsEmojiFrownFill className="w-4 h-4 text-red-500" />}
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 break-words">
+                              {testimonial.feedback}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+                    <div className="bg-gray-100 dark:bg-gray-700 rounded-full p-3 sm:p-4 mb-3">
+                      <FaQuoteLeft className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <p className="text-gray-500 dark:text-gray-400 text-base">
+                      No feedback yet. Be the first to comment!
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Decorative Elements */}
+              <div className="absolute -top-4 -right-4 w-20 h-20 sm:w-24 sm:h-24 bg-blue-500/10 rounded-full blur-2xl"></div>
+              <div className="absolute -bottom-4 -left-4 w-24 h-24 sm:w-32 sm:h-32 bg-purple-500/10 rounded-full blur-2xl"></div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+    </div>
   )
 }
 
